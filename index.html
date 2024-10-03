@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Textarea Autocomplete</title>
+    <style>
+        .container {
+            position: relative;
+            width: 300px;
+            height: 200px;
+        }
+
+        .input,
+        .suggestion {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 1px solid #ccc;
+            padding: 10px;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+            box-sizing: border-box;
+            resize: both;
+            overflow: auto;
+        }
+
+        .input {
+            background: transparent;
+            z-index: 1;
+            color: black;
+        }
+
+        .suggestion {
+            color: gray;
+            z-index: 0;
+            pointer-events: none;
+            border: 1px solid transparent;
+            resize: none;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <textarea id="input" class="input" rows="10" cols="30" placeholder="Type something..."></textarea>
+        <textarea id="suggestion" class="suggestion" rows="10" cols="30" readonly></textarea>
+    </div>
+
+    <script>
+        const input = document.getElementById('input');
+        const suggestion = document.getElementById('suggestion');
+        const suggestions = ['apple', 'banana', 'cherry', 'date', 'elderberry', 'for (let i = 0; i < 100; i++) {\n    suggestions.push(`word${i}`);\n}'];
+
+        input.addEventListener('input', () => {
+            updateSuggestion();
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const value = suggestion.value;
+                input.value = value;
+                suggestion.value = value;
+                input.setSelectionRange(value.length, value.length);
+            }
+        });
+
+        input.addEventListener('keyup', (e) => {
+            if (e.key !== 'Tab' && e.key !== ' ') {
+                updateSuggestion();
+            }
+        });
+
+        input.addEventListener('scroll', () => {
+            suggestion.scrollTop = input.scrollTop;
+            suggestion.scrollLeft = input.scrollLeft;
+        });
+
+
+        input.addEventListener('mousedown', () => {
+            suggestion.style.display = 'none';
+        });
+
+        input.addEventListener('mouseup', () => {
+            suggestion.style.display = 'block';
+            syncTextareaSize();
+        });
+
+        function updateSuggestion() {
+            const value = input.value;
+            const cursorPosition = input.selectionStart;
+            if (value === '') {
+                suggestion.value = '';
+                return;
+            }
+            const lines = value.split('\n');
+            let newValue = '';
+            lines.forEach(line => {
+                const words = line.split(' ');
+                const lastWord = words[words.length - 1];
+                if (lastWord.length > 0) {
+                    const match = suggestions.find(s => s.startsWith(lastWord));
+                    if (match) {
+                        const suggestionText = match.substring(lastWord.length);
+                        newValue += line + suggestionText + '\n';
+                    } else {
+                        newValue += line + '\n';
+                    }
+                } else {
+                    newValue += line + '\n';
+                }
+            });
+            suggestion.value = newValue.trimEnd();
+        }
+
+        function adjustScrollPosition() {
+            const suggestionLines = suggestion.value.split('\n');
+            const inputLines = input.value.split('\n');
+            const suggestionLineCount = suggestionLines.length;
+            const inputLineCount = inputLines.length;
+
+            if (suggestionLineCount > inputLineCount) {
+                const extraLines = suggestionLineCount - inputLineCount;
+                const lineHeight = parseInt(window.getComputedStyle(input).lineHeight);
+                input.scrollTop += extraLines * lineHeight;
+            }
+        }
+
+        function syncTextareaSize() {
+            suggestion.style.width = input.offsetWidth + 'px';
+            suggestion.style.height = input.offsetHeight + 'px';
+        }
+
+        syncTextareaSize();
+    </script>
+</body>
+
+</html>
